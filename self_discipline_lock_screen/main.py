@@ -10,6 +10,7 @@ import json
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
 import random
+import gc
 
 from utils import *
 
@@ -54,6 +55,7 @@ def interval_recording(config):
     if have_face:
         content = content + "\n#### 有在学习"
     else:
+        content = content + "\n#### 好像没有学习哦"
         speech(config["reminder"])
     with open(config["md_path"], "a+", encoding="utf-8") as f:
         f.write(content)
@@ -112,7 +114,7 @@ def background_gui(config):
     """
     每次生成一个随机背景的全屏窗口
     """
-    x = random.randint(0, len(os.listdir(config["background_pth"])))
+    x = random.randint(0, len(os.listdir(config["background_pth"]))-1)
     img_name = os.listdir(config["background_pth"])[x]
     img_path = os.path.join(config["background_pth"], img_name)
     if img_name.endswith(".jpg") or img_name.endswith(".jpeg"):
@@ -137,7 +139,7 @@ def rest(config, time_span):
     if have_face:
         speech(config["reminder_rest"])
     while True:
-        window, event, values = sg.read_all_windows(timeout=20)
+        window, event, values = sg.read_all_windows(timeout=200)
         print(event, values)
         if event is None or event == 'Cancel' or event == 'Exit':
             print(f'closing window = {window.Title}')
@@ -201,12 +203,14 @@ def main():
     scheduler, can_pause = do_schedule(config)  # can pause 是为了任务只停止一次
     # 一直激活程序，当时间到了就暂停任务
     while True:
+        gc.collect()
         # 如果是在非工作时间就暂停任务
         current_timestamp = int(time.time())
         # 若果比最大时间大，就停止任务，但是要一直循环下去，不需要设置rest,但是需要更新时间戳了。
         # 如果是每天启动的话就可以不用，也就是一天执行一次，无法执行跨天任务
         if current_timestamp > end_time_stamps[-1] and can_pause:
             scheduler.remove_all_jobs()  # 移除所有任务后，程序执行完成。
+            sg.popup_ok("恭喜你完成了今天的所有任务！日志记录在log文件夹对应日期下！")
             break
         for i in range(len(end_time_stamps)):
             if i > 0:

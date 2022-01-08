@@ -2,7 +2,7 @@
 
 ## 一款帮助自律的桌面程序
 
-适合于需要长时间在电脑屏幕前进行工作的人。类似于番茄钟，帮助自律。
+适合于需要长时间在电脑屏幕前进行工作的人。类似于番茄钟，帮助自律，卷就完了:trollface: 。
 
 ![项目](./self_discipline_lock_screen/2022-01-06_161607.jpg)
 
@@ -32,7 +32,7 @@ pip install ./model/dlib-19.8.1-cp36-cp36m-win_amd64.whl
    3. reminder: 提醒工作的提示语，可以语音播报。
    4. reminder_rest: 提醒休息的提示语，可以语音播报。
    5. interval: 多少分钟抓拍一次摄像头，记录工作状态。
-```markdown
+```json
 {
   "title":"自律人生",
   "time_intervals": [
@@ -45,13 +45,18 @@ pip install ./model/dlib-19.8.1-cp36-cp36m-win_amd64.whl
   "interval": 5
 }
 
+
 ```
 > 这里设定的是一天的计划，不能跨天，第二天需要重新启动程序
 > 不是真正的锁屏，是置顶gui。自律还是要靠自己
+
+4. 对于windows系统，可以将start.bat，建立快捷方式，添加到你的开机启动文件夹`C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp`中，实现开机启动。
+> start.bat 里面的内容需要按自己的路径修改。
+
 ### TODO
 1. 生成release安装包
 2. 多屏幕，更好的自定义计划等
-3. 优化代码
+3. 优化代码，内存增加问题
 
 ### 说明
-代码有比较详细的注释，由于本人科研任务繁重，暂时不会更新，如果感兴趣可以提交request。
+代码有比较详细的注释，由于本人科研任务繁重，暂时不会更新，如果感兴趣可以提交request，欢迎star。
