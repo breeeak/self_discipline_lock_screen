@@ -12,7 +12,7 @@ import numpy as np
 def face_detect():
     dnnFaceDetector = dlib.cnn_face_detection_model_v1("./model/mmod_human_face_detector.dat")
     video_capture = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-    for i in range(15):
+    for i in range(20):
         ret, img = video_capture.read()
     # img = cv2.imread('./log/2022-01-06/video_capture_15_09_56.png')
     video_capture.release()
@@ -27,6 +27,7 @@ def face_detect():
             x2 = rect.rect.right()
             y2 = rect.rect.bottom()
             cv2.rectangle(img, (x1, y1), (x2, y2), (255, 255, 255), 3)
+    cv2.imwrite("screenshot2.png", img)
     return img, have_face
 
 

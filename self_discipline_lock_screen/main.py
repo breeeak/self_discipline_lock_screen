@@ -11,6 +11,7 @@ import os
 from apscheduler.schedulers.background import BackgroundScheduler
 import random
 import gc
+import psutil
 
 from utils import *
 
@@ -56,7 +57,8 @@ def interval_recording(config):
         content = content + "\n#### 有在学习"
     else:
         content = content + "\n#### 好像没有学习哦"
-        speech(config["reminder"])
+        if config["is_reminder"] == "1":
+            speech(config["reminder"])
     with open(config["md_path"], "a+", encoding="utf-8") as f:
         f.write(content)
     print("执行定时任务，截图，截取屏幕摄像头等", cur)
@@ -81,6 +83,8 @@ def resume_schedule(sched):
     sched.resume_job("interval_recording")
 
 
+
+
 def config_parser(config_path="./config/config.json"):
     with open(config_path, "r", encoding="utf-8") as f:
         load_dict = json.load(f)
@@ -97,13 +101,17 @@ def rest_gui():
     return top_window
 
 
-def start_gui(config):
+def start_gui(config, end=False):
+    title = config["start_title"]
+    tips = config["start_tips"]
+    if end:
+        title = config["end_title"]
+        tips = config["end_tips"]
     layout = [
-        [sg.Text(config["title"], size=(30, 1), justification='center', text_color="#000", font=("Helvetica", 60))],
-        [sg.Text('输入你今天的计划吧！', font=("宋体", 40), text_color="#000")],
+        [sg.Text(title, size=(30, 1), justification='center', text_color="#000", font=("Helvetica", 60))],
+        [sg.Text(tips, font=("宋体", 40), text_color="#000")],
         [sg.Multiline(size=(50, 5), key='plan')],
-
-        [sg.Button('确定计划', size=(10, 1), key='set_plan')],
+        [sg.Button('确定', size=(10, 1), key='set_plan')],
     ]
     top_window = sg.Window('Everything bagel', layout, finalize=True, keep_on_top=True, grab_anywhere=False,
                            transparent_color=sg.theme_background_color(), no_titlebar=True, element_justification='c')
@@ -148,6 +156,8 @@ def rest(config, time_span):
         _, have_face = face_detect()
         if have_face:
             speech(config["reminder_rest"])
+        else:
+            config["unlearning_num"] = config["unlearning_num"] + 1
         if current_timestamp > time_span[-1]:
             break
 
@@ -155,10 +165,10 @@ def rest(config, time_span):
     background_window.close()
 
 
-def start_up(config):
+def start_up(config, end=False):
     # 初始化界面
     background_window = background_gui(config)
-    lockscreen_window = start_gui(config)
+    lockscreen_window = start_gui(config, end=end)
     while True:
         window, event, values = sg.read_all_windows()
         print(event, values)
@@ -168,15 +178,69 @@ def start_up(config):
         if event is "set_plan":
             # 写入计划到md中,就关闭这个启动界面
             if len(values["plan"]) > 0:
-                content = config["md_title"] + "### 今日计划\n\n" + values["plan"] + "\n\n"
-                with open(config["md_path"], "w", encoding="utf-8") as f:
-                    f.write(content)
+                if os.path.exists(config["md_path"]):
+                    content = "\n\n" + config["md_title"] + "### 今日计划,重启\n\n" + values["plan"] + "\n\n"
+                    if end:
+                        content = "\n" + config["md_title"] + "### 今日总结\n\n" + str(config["unlearning_num"]) + "次，未在学习 \n\n" + values["plan"] + "\n"
+                    with open(config["md_path"], "a+", encoding="utf-8") as f:
+                        f.write(content)
+                else:
+                    content = config["md_title"] + "### 今日计划\n\n" + values["plan"] + "\n\n"
+                    with open(config["md_path"], "w", encoding="utf-8") as f:
+                        f.write(content)
                 break
             else:
                 # 没有输入提示
                 sg.popup_ok("请输入计划！", keep_on_top=True)
     lockscreen_window.close()
     background_window.close()
+
+
+def do_detect_games(config):
+    flag = True
+    times = 1
+    while flag:
+        print("正在检测是否在玩游戏")
+        time.sleep(2)
+        pl = psutil.pids()
+        for pid in pl:
+            if psutil.Process(pid).name() in config["game_names"]:
+                times = times + 1
+                print("正在游戏！")
+                # 如果大于60分钟就结束该进程
+                if times > config["game_time"]:
+                    sg.popup_error("游戏时间已结束！", keep_on_top=True)
+                    os.popen('taskkill.exe /pid:' + str(pid))
+
+
+
+def push_getup():
+    # TODO 连接智能手表，震动起床叫醒
+    print("push_getup")
+    pass
+
+
+def push_getup_end():
+    # TODO 连接智能手表，停止震动
+    print("push_getup_end")
+    pass
+
+
+def do_alarm(config):
+    flag = True
+    push_success = False
+    while flag:
+        time.sleep(5)
+        _, have_face = face_detect()
+        if have_face:
+            flag = False
+            push_getup_end()
+        else:
+            if not push_success:
+                push_getup()
+                push_success = True
+            config["unlearning_num"] = config["unlearning_num"] + 1
+        pass
 
 
 def main():
@@ -194,6 +258,11 @@ def main():
     config["screensize"] = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
     # 定义背景样式
     config["background_pth"] = "img"
+    # 未在学习的次数，记录到md中
+    config["unlearning_num"] = 0
+    # 起床叫醒
+    do_alarm(config)
+
     # 启动窗口，输入今日计划
     start_up(config)
 
@@ -206,11 +275,14 @@ def main():
         gc.collect()
         # 如果是在非工作时间就暂停任务
         current_timestamp = int(time.time())
-        # 若果比最大时间大，就停止任务，但是要一直循环下去，不需要设置rest,但是需要更新时间戳了。
         # 如果是每天启动的话就可以不用，也就是一天执行一次，无法执行跨天任务
         if current_timestamp > end_time_stamps[-1] and can_pause:
             scheduler.remove_all_jobs()  # 移除所有任务后，程序执行完成。
-            sg.popup_ok("恭喜你完成了今天的所有任务！日志记录在log文件夹对应日期下！")
+            sg.popup_ok("恭喜你完成了今天的所有任务！日志记录在log文件夹对应日期下！输入今天心得吧！")
+            # 今日总结
+            start_up(config, end=True)
+            # 结束后可以玩会游戏
+            do_detect_games(config)
             break
         for i in range(len(end_time_stamps)):
             if i > 0:
@@ -227,6 +299,7 @@ def main():
                 if current_timestamp < begin_time_stamps[i] and can_pause:
                     pause_schedule(scheduler)
                     can_pause = False
+                    print("pause")
 
 
 if __name__ == '__main__':
