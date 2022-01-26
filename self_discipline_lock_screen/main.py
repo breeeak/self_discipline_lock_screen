@@ -12,6 +12,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import random
 import gc
 import psutil
+import pyautogui as pag
+import threading
 
 from utils import *
 
@@ -213,20 +215,75 @@ def do_detect_games(config):
                     os.popen('taskkill.exe /pid:' + str(pid))
 
 
+def do_job(path = "2022-01-26-16-16-53"):
+    """
+    打开QQ连续发送消息，模拟震动，没有时间做个智能手环了
+    """
+    key_event = []
+    global FLAG
+    for file in os.listdir(path):
+        if file.endswith("txt"):
+            with open(os.path.join(path, file), 'r') as f:
+                for content in f.readlines():
+                    content = content.strip()
+                    if content != "":
+                        key_steps = content.split(":")
+                        key_event.append(key_steps)
+    # ['11', 'Button.left', '1643,20', '1643181849', '2022-01-26-15-23-55\\STEP_11.png']
+    for i, step in enumerate(key_event):
+        if step[1] == "Button.left" or step[1] == "Button.right":
+            location = pag.locateOnScreen(step[-1])     # TODO 许多有hover，颜色会变无法实现，先默认点击上一次的绝对位置
+            location = step[2].split(",")
+            x = int(location[0])
+            y = int(location[1])
+            if step[1] == "Button.left":
+                pag.click(x, y)
+            else:
+                pag.click(x, y, button="right")
+            # if location:
+            #     x, y = pag.center(location)
+            #     time.sleep(0.1)
+            #     if step[1] == "Button.left":
+            #         pag.click(x, y)
+            #     else:
+            #         pag.click(x, y, button="right")
+        elif step[1] == "key" and step[2] != "Key.ctrl_l":   # 键盘事件
+            if step[2].startswith("Key."):
+                pag.press(step[2].replace("Key.", ""))
+            else:
+                content = step[2].replace("'", "")
+                if content == "1":
+                    num = 0
+                    while FLAG:
+                        num = num + 1
+                        time.sleep(3)
+                        pag.typewrite(str(num))
+                        pag.hotkey("ctrl", "enter")
+                    return
+        if i == 0:
+            time.sleep(15)
+        else:
+            time.sleep(2)
+    print(key_event)
 
 def push_getup():
     # TODO 连接智能手表，震动起床叫醒
-    print("push_getup")
+    k_thread = threading.Thread(target=do_job)
+    k_thread.start()
+    print("已启动服务")
     pass
 
 
 def push_getup_end():
     # TODO 连接智能手表，停止震动
     print("push_getup_end")
+    global FLAG
+    FLAG = False
     pass
 
 
 def do_alarm(config):
+    global FLAG
     flag = True
     push_success = False
     while flag:
@@ -234,6 +291,7 @@ def do_alarm(config):
         _, have_face = face_detect()
         if have_face:
             flag = False
+            FLAG = False
             push_getup_end()
         else:
             if not push_success:
@@ -303,4 +361,5 @@ def main():
 
 
 if __name__ == '__main__':
+    FLAG = True
     main()

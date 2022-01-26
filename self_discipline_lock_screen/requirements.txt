@@ -3,17 +3,26 @@ backports.zoneinfo==0.2.1
 certifi==2020.6.20
 cmake==3.22.1
 comtypes==1.1.10
-dlib==19.8.1
+dlib @ file:///D:/3_Research/1_Project/1_Python/LockScreenTimer/self_discipline_lock_screen/model/dlib-19.8.1-cp36-cp36m-win_amd64.whl
 imageio==2.13.5
 importlib-resources==5.4.0
 imutils==0.5.4
+MouseInfo==0.1.3
 numpy==1.19.5
 opencv-python==4.5.5.62
 Pillow==8.4.0
+psutil==5.9.0
+PyAutoGUI==0.9.53
+PyGetWindow==0.0.9
+PyMsgBox==1.0.9
+pynput==1.7.6
 pyperclip==1.8.2
 pypiwin32==223
+PyRect==0.1.4
+PyScreeze==0.1.28
 PySimpleGUI==4.55.1
 pyttsx3==2.90
+pytweening==1.0.4
 pytz==2021.3
 pytz-deprecation-shim==0.1.0.post0
 pywin32==303
